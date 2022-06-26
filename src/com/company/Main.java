@@ -3,35 +3,37 @@ package com.company;
 import javax.swing.*;
 import java.awt.*;
 import java.io.IOException;
-import java.net.HttpURLConnection;
-import java.net.URL;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 
 public class Main {
-
-    public static void main(String[] args) {
+    private void createAndShowGUI(){
         /** The main window. **/
         JFrame frame = new JFrame("Controller");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setSize(600, 400);
+        frame.setSize(650, 480);
 
         /** The background image. **/
         JLabel image = new JLabel();
-        image.setIcon(new ImageIcon("C:\\Users\\svyat\\IdeaProjects\\practice\\src\\img\\i1.png"));
         frame.add(image);
 
         /** The panel with counter. **/
         JPanel header = new JPanel();
         header.setSize(new Dimension(600, 40));
+        header.setBackground(Color.WHITE);
         frame.add(header, BorderLayout.NORTH);
 
         /** The panel with the scrollbar. **/
         JPanel left = new JPanel();
+        left.setBackground(Color.WHITE);
         frame.add(left, BorderLayout.WEST);
 
         /** The panel with the submit button. **/
         JPanel buttonPanel = new JPanel();
         buttonPanel.setBackground(Color.WHITE);
-        frame.add(buttonPanel, BorderLayout.EAST);
+        frame.add(buttonPanel, BorderLayout.SOUTH);
 
         /** The counter. **/
         JLabel label = new JLabel("The current value: " + 0);
@@ -45,9 +47,7 @@ public class Main {
         JScrollBar jScrollBar = new JScrollBar(Adjustable.VERTICAL, 0, 1, 0, 31);
         jScrollBar.setPreferredSize(new Dimension(20, 300));
         jScrollBar.addAdjustmentListener(event -> {
-            label.setText("The current value: " + jScrollBar.getValue());
-            image.setIcon(new ImageIcon("C:\\Users\\svyat\\IdeaProjects\\practice\\src\\img\\i" +
-                    jScrollBar.getValue() + ".png"));
+            Animation.scrollBarAnimation(label, image, jScrollBar);
         });
 
         /**
@@ -59,20 +59,39 @@ public class Main {
         submitButton.setPreferredSize(new Dimension(200, 50));
         buttonPanel.add(submitButton, BorderLayout.CENTER);
         submitButton.addActionListener(event -> {
-
-            String url = "http://localhost/put_info.php?steps=3&degrees=" + jScrollBar.getValue();
-
-            try {
-                URL obj = new URL(url);
-                HttpURLConnection connection = (HttpURLConnection) obj.openConnection();
-                connection.setRequestMethod("GET");
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            int angle = jScrollBar.getValue();
+            int steps = MathLogic.getSteps(angle);
+            System.out.println("?steps=" + steps + "&degrees=" + angle);
+            sendDataToDataBase(steps, angle);
+//            Animation.endAnimation(label, image, jScrollBar);
         });
 
         left.add(jScrollBar);
         header.add(label);
         frame.setVisible(true);
+
+        Animation.startAnimation(image);
+    }
+
+    private static void sendDataToDataBase(int steps, int degrees){
+        String url = "http://svyatptm.beget.tech/put_info.php?steps=" + steps + "&degrees=" + degrees;
+
+        try {
+            HttpClient client = HttpClient.newHttpClient();
+            HttpRequest request = HttpRequest.newBuilder()
+                    .GET()
+                    .uri(URI.create(url))
+                    .build();
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            System.out.println(response.body());
+        } catch (InterruptedException | IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void main(String[] args) {
+        Main mainWindow = new Main();
+        sendDataToDataBase(0, 0);
+        mainWindow.createAndShowGUI();
     }
 }
